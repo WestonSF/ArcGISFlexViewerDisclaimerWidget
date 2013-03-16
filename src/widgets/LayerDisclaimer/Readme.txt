@@ -1,0 +1,1 @@
+<widget left="0"   bottom="0"  config="widgets/LayerDisclaimer/LayerDisclaimerWidget.xml" url="widgets/LayerDisclaimer/LayerDisclaimerWidget.swf"/>

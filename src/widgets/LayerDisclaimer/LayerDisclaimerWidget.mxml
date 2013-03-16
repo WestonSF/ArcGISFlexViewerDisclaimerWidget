@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010-2011 Esri
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:viewer="com.esri.viewer.*"				   
+				   widgetConfigLoaded="init()">				   
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.LayerEvent;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.tasks.supportClasses.LengthsParameters;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+				
+			private var disclaimerLayers:ArrayCollection = new ArrayCollection();
+			private var disclaimerViewed:ArrayCollection = new ArrayCollection();		
+			private var layerInfo:Array = new Array();
+			
+			
+			private var selectedLayerID:Number;
+			
+			[Embed(source='assets/Warning.png')]
+			[Bindable]
+			private var warningIcon:Class;	
+			
+			public var sharedObject:SharedObject;
+			
+			private function init():void
+			{	
+				// Check for configuration file
+				if (configXML) 
+				{		
+					// Clear the shared object
+					sharedObject = SharedObject.getLocal("disclaimerInfo");	
+					sharedObject.clear();				
+					
+					var SelectedLayerCount:Number = 0;
+					// Iterate through map services set in config		
+					for each (var mapConfigXml:XML in configXML.mapservices.mapservice)
+					{											
+						// Get the layer name and disclaimer from the config						
+						var layer:Layer =  map.getLayer(mapConfigXml.name);												
+						var disclaimer:String = mapConfigXml.disclaimer;
+						
+						// Push the layer name, id and disclaimer into array
+						layerInfo.push({layer:mapConfigXml.name, id:SelectedLayerCount, disclaimer:disclaimer});
+						
+						// Check the visibility of the layer
+						if (layer.visible == true) {
+							// Show the disclaimer
+							onLayerShow(null);
+						}
+						
+						// Listen for changes in layer visibility
+						layer.addEventListener(FlexEvent.SHOW, onLayerShow);
+						layer.addEventListener(FlexEvent.HIDE, onLayerHide);	
+						
+						// Add layer to array
+						disclaimerLayers.addItem(layer);
+						
+						SelectedLayerCount++;
+					}			
+				}
+			}
+
+			// When a layer is turned on
+			private function onLayerShow(event:FlexEvent):void
+			{		
+				var selectedLayer:String = new String();
+				var disclaimer:String = new String();
+				// If they layer is on at startup, set the variables to be the last entry added to the layerInfo array
+				if (event == null) {				
+					selectedLayer = layerInfo[layerInfo.length-1].layer;
+					selectedLayerID = layerInfo[layerInfo.length-1].id;
+					disclaimer = layerInfo[layerInfo.length-1].disclaimer;
+				}
+				// Else coming from event handler, so get the layer selected and work out other variables from array
+				else {
+					selectedLayer = event.target.id;
+					for (var count:int=0; count < layerInfo.length; count++)
+					{
+						// Get the selected ID and disclaimer from the array using the layer id to match
+						if (selectedLayer == layerInfo[count].layer) {						
+							selectedLayerID = layerInfo[count].id;
+							disclaimer = layerInfo[count].disclaimer;
+						}							
+					}		
+				}					
+				
+				// Check the shared object to see if the disclaimer has already been shown
+				sharedObject = SharedObject.getLocal("disclaimerInfo");
+				
+				// Go through the disclaimer array to see what disclaimer has been seen
+				var disclaimerSeen:Boolean = false;
+				var disclaimerCount:Number = 0;
+				while (disclaimerViewed.length > disclaimerCount)
+				{
+					// If the layer selected disclaimer has been seen then don't show the disclaimer
+					if (selectedLayerID == disclaimerViewed[disclaimerCount])
+					{
+						disclaimerSeen = true;
+					}					
+					disclaimerCount++;
+				}
+				
+				if (disclaimerSeen == false) {
+					// Set the currently selected layer and setup alert box					
+					Alert.yesLabel = "Agree";
+					Alert.noLabel = "Disagree";
+					Alert.buttonWidth = 100;
+					Alert.show(disclaimer, "", Alert.YES | Alert.NO, null, closeDisclaimer, warningIcon);						
+				}			
+			}
+						
+			// When layer is turned off
+			private function onLayerHide(event:FlexEvent):void
+			{
+							
+			}			
+
+			// When the disclaimer popup is closed
+			private function closeDisclaimer(event:CloseEvent):void {								
+				// If agree is clicked continue, otherwise don't turn on layer
+				if (event.detail==Alert.NO) {			
+					// Hide the layer
+					disclaimerLayers[selectedLayerID].visible = false;
+				}
+				else {
+					// The layer will be shown and update the shared object to stop disclaimer showing again in session
+					disclaimerViewed.addItem(selectedLayerID);
+					sharedObject.data.disclaimerInfo = disclaimerViewed;
+				}
+					
+			}
+			
+		]]>
+	</fx:Script>	
+	
+	<fx:Declarations>
+
+	</fx:Declarations>
+	
+</viewer:BaseWidget>

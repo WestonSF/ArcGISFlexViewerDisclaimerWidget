@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+
+<configuration>	
+<mapservices>
+
+<!-- Map services to have a disclaimer popup for -->
+<mapservice>
+<name>Utilities - Water</name> <!-- The name of the map service specified in the main config file -->
+<disclaimer>This is the disclaimer for viewing and querying water utilties maintainted by Waimakariri District Council.</disclaimer> <!-- The text to appear in the disclaimer popup -->
+</mapservice>
+
+<mapservice>
+<name>Property</name> 
+<disclaimer>This is the disclaimer for viewing and querying property information maintainted by Waimakariri District Council.</disclaimer>
+</mapservice>
+
+</mapservices>
+</configuration>
